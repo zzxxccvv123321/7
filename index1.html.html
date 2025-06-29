@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>موقع إبراهيم فاضل لاختبار الذكاء</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #e0f0ff;
+      color: #003366;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      margin-top: 30px;
+      padding: 20px;
+    }
+
+    button {
+      background-color: #007acc;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 12px;
+      margin: 10px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    button:hover {
+      background-color: #005f99;
+    }
+
+    #scoreCounter {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    footer {
+      margin-top: 50px;
+      padding: 20px;
+    }
+
+    footer a {
+      color: #007acc;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .options button {
+      display: block;
+      margin: 10px auto;
+      width: 60%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="main">
+    <h1>أهلًا بك في موقع إبراهيم فاضل لاختبار ذكائك</h1>
+    <p>اختر صعوبة الاختبار:</p>
+    <button onclick="startTest('easy')">اختبار سهل</button>
+    <button onclick="startTest('medium')">اختبار صعب</button>
+    <button onclick="startTest('hard')">اختبار صعب جدًا</button>
+  </div>
+
+  <div class="container" id="quiz" style="display:none;">
+    <div id="questionText"></div>
+    <div id="answers" class="options"></div>
+    <button onclick="nextQuestion()">التالي</button>
+  </div>
+
+  <div class="container" id="result" style="display:none;">
+    <h2 id="scoreText"></h2>
+    <p id="adviceText"></p>
+    <button onclick="restart()">🔁 إعادة الاختبار</button>
+    <button onclick="resetPoints()">🗑️ تصفير النقاط</button>
+  </div>
+
+  <div id="scoreCounter">النقاط: 0</div>
+
+  <footer>
+    <a href="https://www.instagram.com/jq.x_9" target="_blank">📩 راسلنا</a>
+  </footer>
+
+  <script>
+    let currentQuestion = 0;
+    let score = 0;
+    let points = parseInt(localStorage.getItem("points")) || 0;
+    let selectedSet = [];
+    let difficulty = '';
+
+    const questions = {
+      easy: [
+        { q: "إذا كانت الساعة 3:15، كم الزاوية بين العقارب؟", a: ["7.5°", "0°", "97.5°"], c: 2, type: "focus" },
+        { q: "رجل يقف شمال الشمس، فأين يكون ظله؟", a: ["جنوب", "شمال", "شرق"], c: 0, type: "logic" },
+        { q: "ما الرقم التالي: 3، 6، 12، ؟، 48", a: ["18", "24", "30"], c: 1, type: "math" },
+        { q: "كلمة تحتوي على جميع الحروف الأبجدية؟", a: ["أبجدية", "لوغاريتم", "لا توجد"], c: 2, type: "info" },
+        { q: "ما هو الشيء الذي كلما أخذت منه كبر؟", a: ["الثقب", "الحفرة", "العقل"], c: 0, type: "logic" },
+        { q: "كم مثلث في الشكل التالي؟ (افتراضي)", a: ["10", "12", "8"], c: 1, type: "focus" },
+        { q: "ما هو الرقم الوحيد الذي لا يتغير إذا ضربته بنفسه؟", a: ["1", "0", "2"], c: 0, type: "math" },
+        { q: "كم دقيقة في ربع ساعة؟", a: ["15", "10", "25"], c: 0, type: "info" },
+        { q: "ما هو الشهر الذي يحتوي 28 يومًا؟", a: ["كل الشهور", "فبراير", "يناير"], c: 0, type: "logic" },
+        { q: "كم عدد الزوايا في المستطيل؟", a: ["4", "3", "5"], c: 0, type: "math" }
+      ],
+      medium: [
+        { q: "أحمد أكبر من خالد بـ5 سنوات، خالد عمره 10، كم عمر أحمد؟", a: ["15", "12", "13"], c: 0, type: "math" },
+        { q: "في الساعة، كم مرة تنطبق العقارب في اليوم؟", a: ["22", "24", "12"], c: 0, type: "info" },
+        { q: "ما هو الرقم المختلف: 11، 13، 15، 17، 19؟", a: ["13", "15", "19"], c: 1, type: "logic" },
+        { q: "إذا كانت الأرض كروية، لماذا لا يسقط الناس في الأسفل؟", a: ["الجاذبية", "الهواء", "السحر"], c: 0, type: "info" },
+        { q: "ما هو ترتيب الحرف 'ن' في الأبجدية؟", a: ["25", "14", "21"], c: 1, type: "info" },
+        { q: "ما ناتج 12 + 21 ÷ 3 × 2؟", a: ["26", "28", "30"], c: 0, type: "math" },
+        { q: "إذا ضربت رقمًا بنفسه ونتج 49، ما هو الرقم؟", a: ["7", "6", "8"], c: 0, type: "math" },
+        { q: "كم عدد الأصفار في مليون؟", a: ["6", "7", "5"], c: 0, type: "info" },
+        { q: "ما هو الحيوان الذي لا يلد ولا يبيض؟", a: ["ذكر الحيوان", "الثعبان", "الضفدع"], c: 0, type: "logic" },
+        { q: "كم حرف في كلمة 'الذكاء'؟", a: ["6", "5", "7"], c: 0, type: "focus" }
+      ],
+      hard: [
+        { q: "رجل لديه 4 بنات، كل بنت لها أخ واحد. كم عدد الأولاد؟", a: ["5", "4", "1"], c: 0, type: "logic" },
+        { q: "قنينة ومسمار ثمنهم دينار و10 فلوس، والقنينة أغلى بدينار. كم سعر المسمار؟", a: ["5 فلوس", "10 فلوس", "50 فلوس"], c: 0, type: "math" },
+        { q: "ما الرقم التالي: 2، 3، 5، 8، 13، ؟", a: ["20", "21", "19"], c: 1, type: "math" },
+        { q: "ما هو الشيء الذي يتحدث دون فم ويسمع دون أذن؟", a: ["الهاتف", "الظل", "الصدى"], c: 2, type: "logic" },
+        { q: "ما هو الرقم المعكوس لـ 86؟", a: ["68", "98", "لا شيء"], c: 1, type: "focus" },
+        { q: "أين يقع البحر الذي لا ماء فيه؟", a: ["في الخريطة", "في الحلم", "في الرواية"], c: 0, type: "logic" },
+        { q: "ثلاثة رجال قالوا: (أنا لست الكاذب) – من هو الكاذب؟", a: ["علي", "سالم", "خالد"], c: 2, type: "logic" },
+        { q: "إذا كان الكذب دومًا خطأ، هل جملة: (أنا أكذب الآن) صادقة؟", a: ["لا", "نعم", "متناقضة"], c: 2, type: "logic" },
+        { q: "كم مثلث في شكل مكون من 3 خطوط متقاطعة؟", a: ["6", "7", "8"], c: 1, type: "focus" },
+        { q: "إذا بدأت السباق وتجاوزت الشخص الثاني، فأي مركز أصبحت فيه؟", a: ["الثاني", "الأول", "الثالث"], c: 0, type: "logic" }
+      ]
+    };
+
+    document.getElementById("scoreCounter").innerText = `النقاط: ${points}`;
+
+    function updatePointsDisplay() {
+      document.getElementById("scoreCounter").innerText = `النقاط: ${points}`;
+      localStorage.setItem("points", points);
+    }
+
+    function startTest(level) {
+      difficulty = level;
+      selectedSet = [...questions[level]].sort(() => 0.5 - Math.random()).slice(0, 10);
+      currentQuestion = 0;
+      score = 0;
+      document.getElementById("main").style.display = "none";
+      document.getElementById("quiz").style.display = "block";
+      document.getElementById("result").style.display = "none";
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      let q = selectedSet[currentQuestion];
+      document.getElementById("questionText").innerText = q.q;
+      document.getElementById("answers").innerHTML = "";
+      q.a.forEach((ans, i) => {
+        let btn = document.createElement("button");
+        btn.innerText = ans;
+        btn.onclick = () => checkAnswer(i);
+        document.getElementById("answers").appendChild(btn);
+      });
+    }
+
+    function checkAnswer(selected) {
+      if (selected === selectedSet[currentQuestion].c) {
+        score++;
+        points += 3;
+        updatePointsDisplay();
+      }
+      currentQuestion++;
+      if (currentQuestion < selectedSet.length) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      document.getElementById("quiz").style.display = "none";
+      document.getElementById("result").style.display = "block";
+      document.getElementById("scoreText").innerText = `لقد حصلت على ${score} من 10`;
+
+      let wrong = selectedSet.filter((q, i) => {
+        return i < score ? false : true;
+      });
+
+      let types = wrong.map(q => q.type);
+      let freq = {};
+      types.forEach(t => freq[t] = (freq[t] || 0) + 1);
+      let weakest = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
+
+      let advice = '';
+      if (!weakest) {
+        advice = "أداء ممتاز! استمر على هذا المستوى.";
+      } else {
+        switch (weakest[0]) {
+          case "math":
+            advice = "يبدو أنك ضعيف في الحسابات الذهنية. حاول حل مسائل رياضية بسيطة يوميًا.";
+            break;
+          case "logic":
+            advice = "تفكيرك المنطقي يحتاج إلى تدريب أكثر. جرب ألعاب الألغاز والمنطق.";
+            break;
+          case "focus":
+            advice = "انتباهك للتفاصيل منخفض. قم بتمارين تركيز يومية وابتعد عن التشتيت.";
+            break;
+          case "info":
+            advice = "معلوماتك العامة بحاجة إلى تطوير. اقرأ أكثر في مواضيع متنوعة.";
+            break;
+          default:
+            advice = "حاول مراجعة أخطائك لتحسين مستواك.";
+        }
+      }
+
+      document.getElementById("adviceText").innerText = advice;
+    }
+
+    function restart() {
+      document.getElementById("main").style.display = "block";
+      document.getElementById("quiz").style.display = "none";
+      document.getElementById("result").style.display = "none";
+    }
+
+    function resetPoints() {
+      points = 0;
+      localStorage.setItem("points", points);
+      updatePointsDisplay();
+    }
+  </script>
+</body>
+</html>
